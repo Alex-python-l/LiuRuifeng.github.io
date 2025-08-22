@@ -1,0 +1,600 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <title>抢票 & 价格监控 · 集成演示</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <style>
+    :root{
+      --bg:#0f1218;
+      --card:#161a22;
+      --muted:#8b93a7;
+      --text:#e9edf4;
+      --primary:#52a8ff;
+      --primary-ghost:#1f2a3e;
+      --success:#1cc88a;
+      --danger:#ff5d5d;
+      --warning:#f6c23e;
+      --border:#232936;
+      --chip:#202535;
+      --shadow:0 4px 18px rgba(0,0,0,.35);
+      --radius:14px;
+      --gap:18px;
+      --focus:0 0 0 3px rgba(82,168,255,.35);
+      --mono: ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,"Liberation Mono","Courier New",monospace;
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0;
+      background:radial-gradient(1200px 600px at 20% -10%, #1b2230 0%, rgba(27,34,48,0) 60%), var(--bg);
+      color:var(--text);
+      font: 14px/1.45 system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,"Apple Color Emoji","Segoe UI Emoji";
+    }
+    a{color:var(--primary);text-decoration:none}
+    .container{max-width:1100px;margin:24px auto;padding:0 20px 40px}
+    header{
+      position:sticky; top:0; z-index:10;
+      backdrop-filter: blur(10px);
+      background:rgba(15,18,24,.65);
+      border-bottom:1px solid var(--border);
+    }
+    .nav{
+      max-width:1100px; margin:0 auto; padding:14px 20px; display:flex; align-items:center; gap:14px;
+    }
+    .nav .brand{font-weight:700; letter-spacing:.2px;}
+    .tabs{margin-left:auto; display:flex; gap:8px;}
+    .tab-btn{
+      padding:8px 14px; border-radius:999px; border:1px solid var(--border); background:transparent; color:var(--text); cursor:pointer;
+    }
+    .tab-btn.active{background:var(--primary-ghost); border-color:#2c3a53; box-shadow:var(--focus)}
+    .page{display:none; margin-top:18px;}
+    .page.active{display:block}
+    .grid{
+      display:grid; grid-template-columns: 380px 1fr; gap:var(--gap);
+    }
+    .card{
+      background:linear-gradient(180deg, #181d28 0%, #141925 100%);
+      border:1px solid var(--border);
+      border-radius:var(--radius);
+      box-shadow:var(--shadow);
+    }
+    .card .hd{padding:14px 16px;border-bottom:1px solid var(--border); display:flex; align-items:center; justify-content:space-between}
+    .card .hd h3{margin:0;font-size:15px}
+    .card .bd{padding:16px}
+    .row{display:flex; gap:10px; margin-bottom:12px}
+    label{display:block; font-size:12px; color:var(--muted); margin-bottom:6px}
+    input,select{
+      width:100%; padding:10px 12px; border-radius:10px; border:1px solid var(--border); background:#0f1420; color:var(--text); outline:none;
+    }
+    input:focus{box-shadow:var(--focus)}
+    .btn{
+      padding:10px 14px; border-radius:10px; border:1px solid var(--border); background:#1a2333; color:var(--text); cursor:pointer;
+    }
+    .btn.primary{background:var(--primary-ghost); border-color:#2c3a53}
+    .btn.success{background:#153328; border-color:#1f6149}
+    .btn.danger{background:#3a1e21; border-color:#6a2a30}
+    .btn:disabled{opacity:.55; cursor:not-allowed}
+    .status-chip{
+      display:inline-flex; align-items:center; gap:6px; padding:6px 10px; border-radius:999px; background:var(--chip); border:1px solid var(--border); font-size:12px;
+    }
+    .chip-ok{color:var(--success); border-color:#1f4d3d}
+    .chip-warn{color:var(--warning); border-color:#4c4222}
+    .chip-bad{color:var(--danger); border-color:#5a2a2a}
+    .muted{color:var(--muted)}
+    .mono{font-family:var(--mono)}
+    .log{
+      height:320px; overflow:auto; background:#0c1019; padding:12px; border-radius:12px; border:1px dashed #283044;
+      font-family:var(--mono); font-size:12px; line-height:1.45;
+    }
+    .list{width:100%; border-collapse:separate; border-spacing:0 10px}
+    .list thead th{font-size:12px; color:var(--muted); font-weight:600; text-align:left; padding:0 8px}
+    .list tbody td{
+      background:#121826; border-top:1px solid var(--border); border-bottom:1px solid var(--border);
+      padding:10px 8px; vertical-align:middle;
+    }
+    .list tbody tr td:first-child{border-left:1px solid var(--border); border-top-left-radius:12px; border-bottom-left-radius:12px}
+    .list tbody tr td:last-child{border-right:1px solid var(--border); border-top-right-radius:12px; border-bottom-right-radius:12px}
+    .price-ok{color:var(--success)}
+    .price-bad{color:var(--danger)}
+    .pill{display:inline-block; padding:4px 8px; border-radius:999px; background:#1a2031; border:1px solid var(--border); font-size:12px}
+    .toast{
+      position:fixed; right:20px; bottom:20px; display:none; padding:12px 14px; border-radius:12px; background:#162033; border:1px solid var(--border); box-shadow:var(--shadow);
+    }
+    .toast.show{display:block; animation:fade 3s ease 1}
+    @keyframes fade{0%{opacity:0; transform:translateY(6px)}10%{opacity:1; transform:none}80%{opacity:1}100%{opacity:0; transform:translateY(6px)}}
+    /* modal */
+    .modal-mask{
+      position:fixed; inset:0; background:rgba(0,0,0,.5); display:none; align-items:center; justify-content:center; z-index:50;
+    }
+    .modal{width:520px; max-width:92vw}
+    .modal .bd p{margin:.5em 0}
+    /* responsive small tweaks */
+    @media (max-width:980px){
+      .grid{grid-template-columns:1fr}
+    }
+    .help{
+      font-size:12px; color:var(--muted); margin-top:6px;
+    }
+    .kbd{font-family:var(--mono); font-size:12px; background:#1a2233; border:1px solid var(--border); border-radius:6px; padding:2px 6px}
+  </style>
+</head>
+<body>
+  <header>
+    <nav class="nav" aria-label="主导航">
+      <div class="brand">🎫 抢票 & 💹 价格监控 · 集成演示</div>
+      <div class="tabs" role="tablist" aria-label="功能切换">
+        <button class="tab-btn active" role="tab" aria-selected="true" data-tab="ticket">抢票</button>
+        <button class="tab-btn" role="tab" aria-selected="false" data-tab="price">价格监控</button>
+      </div>
+    </nav>
+  </header>
+
+  <div class="container">
+    <!-- 抢票页 -->
+    <section id="page-ticket" class="page active" aria-labelledby="tab-ticket">
+      <div class="grid">
+        <!-- 左侧：输入 -->
+        <div class="card" aria-live="polite">
+          <div class="hd">
+            <h3>抢票参数</h3>
+            <span id="ticket-status-chip" class="status-chip chip-warn">⏳ 未启动</span>
+          </div>
+          <div class="bd">
+            <div class="row">
+              <div style="flex:1">
+                <label for="targetName">目标名称（如“某某演唱会”）</label>
+                <input id="targetName" placeholder="请输入目标名称" autocomplete="off">
+              </div>
+            </div>
+            <div class="row">
+              <div style="flex:1">
+                <label for="sessionName">场次/票档</label>
+                <input id="sessionName" placeholder="如：上海站 2025-09-01 19:30">
+              </div>
+            </div>
+            <div class="row">
+              <div style="flex:1">
+                <label for="startTime">开始时间</label>
+                <input id="startTime" type="datetime-local">
+                <div class="help">到达开始时间自动进入抢票轮询；倒计时每秒刷新。</div>
+              </div>
+            </div>
+            <div class="row">
+              <button id="btnStartTicket" class="btn primary">🚀 启动抢票</button>
+              <button id="btnStopTicket" class="btn danger" disabled>🛑 停止抢票</button>
+            </div>
+            <div class="row">
+              <span class="pill">倒计时：<span id="countdown" class="mono">--:--:--</span></span>
+              <span class="pill">库存：<span id="stockLabel" class="mono">--</span></span>
+            </div>
+            <div class="help">提示：首次点击按钮会被浏览器视为“用户手势”，后续才能播放提醒音。</div>
+
+            <!-- ★★★ 集成入口（抢票项目脚本注入） ★★★
+              例如：
+              <script src="https://cdn.example.com/ticket-project.bundle.js"></script>
+              // 并在 window.TicketProject 中暴露 API：start(params), stop(), on(event, cb)
+            -->
+          </div>
+        </div>
+
+        <!-- 右侧：状态/日志 -->
+        <div class="card">
+          <div class="hd">
+            <h3>实时状态与日志</h3>
+            <div>
+              <span class="pill">轮询：<span id="pollBadge" class="mono muted">未开始</span></span>
+            </div>
+          </div>
+          <div class="bd">
+            <div class="row" style="gap:14px">
+              <span class="status-chip chip-warn" id="liveStatus">🟡 待开始</span>
+              <span class="status-chip chip-ok" id="gotStatus" style="display:none">🟢 已抢到票</span>
+              <span class="status-chip chip-bad" id="noStockStatus" style="display:none">🔴 库存不足</span>
+            </div>
+            <div id="log" class="log" aria-live="polite" aria-label="抢票实时日志"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 价格监控页 -->
+    <section id="page-price" class="page" aria-labelledby="tab-price">
+      <div class="card">
+        <div class="hd">
+          <h3>添加监控</h3>
+          <span class="muted">当价格低于阈值时弹窗 + 声音提醒</span>
+        </div>
+        <div class="bd">
+          <div class="row">
+            <div style="flex:2">
+              <label for="itemUrl">商品/车票链接</label>
+              <input id="itemUrl" placeholder="https://example.com/item/123">
+            </div>
+            <div style="flex:1">
+              <label for="priceThreshold">阈值（元）</label>
+              <input id="priceThreshold" type="number" min="0" step="1" placeholder="如 500">
+            </div>
+          </div>
+          <div class="row">
+            <button id="btnAddWatch" class="btn success">➕ 添加监控</button>
+          </div>
+          <div class="help">
+            • 当前价格每 10 秒刷新；支持暂停/恢复与删除。<br>
+            • 价格颜色：<span class="price-ok">绿色 = 低于阈值</span>，<span class="price-bad">红色 = 高于阈值</span>。<br>
+            • 链接格式校验失败会提示“链接无效”。
+          </div>
+
+          <!-- ★★★ 集成入口（价格监控项目 API） ★★★
+            假设开源项目提供 HTTP 或 JS 接口：
+            - JS：window.PriceSDK.getCurrentPrice(url) -> Promise<number>
+            - HTTP：fetch('https://api.example.com/price?url=' + encodeURIComponent(url))
+            见下方 fetchCurrentPrice() 的“TODO：替换为真实接口”部分。
+          -->
+        </div>
+      </div>
+
+      <div class="card" style="margin-top:18px">
+        <div class="hd">
+          <h3>监控列表</h3>
+          <span class="pill">总数：<span id="watchCount" class="mono">0</span></span>
+        </div>
+        <div class="bd">
+          <table class="list" aria-label="价格监控列表">
+            <thead>
+              <tr>
+                <th>名称/链接</th>
+                <th>阈值(¥)</th>
+                <th>当前价格(¥)</th>
+                <th>状态</th>
+                <th>操作</th>
+              </tr>
+            </thead>
+            <tbody id="watchTbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <!-- 弹窗 -->
+  <div id="modalMask" class="modal-mask" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+    <div class="card modal">
+      <div class="hd">
+        <h3 id="modalTitle">提醒</h3>
+        <button class="btn" id="modalClose">✖</button>
+      </div>
+      <div class="bd" id="modalBody"></div>
+    </div>
+  </div>
+
+  <!-- Toast -->
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <script>
+    /**************
+     * 工具函数区 *
+     **************/
+    const $ = (q)=>document.querySelector(q);
+    const $$ = (q)=>document.querySelectorAll(q);
+    const logEl = $("#log");
+
+    function toast(msg){
+      const t = $("#toast");
+      t.textContent = msg;
+      t.classList.add("show");
+      setTimeout(()=> t.classList.remove("show"), 2600);
+    }
+
+    // 简单可复用的 beep（WebAudio）
+    let audioCtx;
+    function beep(duration=450, freq=880){
+      try{
+        audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
+        const o = audioCtx.createOscillator();
+        const g = audioCtx.createGain();
+        o.connect(g); g.connect(audioCtx.destination);
+        o.type = "sine"; o.frequency.value = freq;
+        o.start();
+        g.gain.setValueAtTime(0.001, audioCtx.currentTime);
+        g.gain.exponentialRampToValueAtTime(0.4, audioCtx.currentTime + 0.02);
+        g.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration/1000);
+        o.stop(audioCtx.currentTime + duration/1000 + 0.05);
+      }catch(e){ /* 静默失败（比如未有用户手势） */ }
+    }
+
+    function openModal(html){
+      $("#modalBody").innerHTML = html;
+      $("#modalMask").style.display = "flex";
+    }
+    function closeModal(){
+      $("#modalMask").style.display = "none";
+    }
+    $("#modalClose").addEventListener("click", closeModal);
+    $("#modalMask").addEventListener("click", (e)=>{ if(e.target.id==="modalMask") closeModal(); });
+
+    function appendLog(line){
+      const time = new Date().toLocaleTimeString();
+      logEl.insertAdjacentHTML("afterbegin", `<div><span class="muted">[${time}]</span> ${line}</div>`);
+    }
+
+    function formatCountdown(ms){
+      if(ms<=0) return "00:00:00";
+      const s = Math.floor(ms/1000);
+      const h = String(Math.floor(s/3600)).padStart(2,"0");
+      const m = String(Math.floor((s%3600)/60)).padStart(2,"0");
+      const ss= String(s%60).padStart(2,"0");
+      return `${h}:${m}:${ss}`;
+    }
+
+    // 简单 URL 校验
+    function isValidUrl(u){
+      try{ new URL(u); return true; }catch{ return false; }
+    }
+
+    /*************************
+     * 页签切换（抢票/价格监控）
+     *************************/
+    $$(".tab-btn").forEach(btn=>{
+      btn.addEventListener("click",()=>{
+        $$(".tab-btn").forEach(b=>b.classList.toggle("active", b===btn));
+        $$(".page").forEach(p=>p.classList.remove("active"));
+        const id = btn.dataset.tab;
+        document.querySelector(`#page-${id}`).classList.add("active");
+      });
+    });
+
+    /*****************
+     * 抢票模块逻辑  *
+     *****************/
+    const ticket = {
+      timerId: null,
+      pollId: null,
+      countdownId: null,
+      started: false,
+      start(){
+        const name = $("#targetName").value.trim();
+        const session = $("#sessionName").value.trim();
+        const startTime = $("#startTime").value;
+        if(!name){ toast("目标名称不能为空"); return; }
+        if(!session){ toast("场次不能为空"); return; }
+        if(!startTime){ toast("开始时间不能为空"); return; }
+        const startAt = new Date(startTime).getTime();
+        if(isNaN(startAt)){ toast("开始时间格式无效"); return; }
+
+        this.started = true;
+        $("#btnStartTicket").disabled = true;
+        $("#btnStopTicket").disabled = false;
+        $("#ticket-status-chip").className = "status-chip chip-ok";
+        $("#ticket-status-chip").textContent = "✅ 已启动";
+        $("#liveStatus").textContent = "🟢 监控中";
+        $("#gotStatus").style.display = "none";
+        $("#noStockStatus").style.display = "none";
+        $("#pollBadge").textContent = "已就绪";
+        appendLog(`启动抢票：${name}｜${session}。开始时间：${startTime}`);
+
+        // 倒计时
+        clearInterval(this.countdownId);
+        this.countdownId = setInterval(()=>{
+          const now = Date.now();
+          const left = startAt - now;
+          $("#countdown").textContent = formatCountdown(left);
+          if(left<=0){
+            clearInterval(this.countdownId);
+            $("#countdown").textContent = "00:00:00";
+            appendLog("到达开始时间，进入抢票轮询…");
+            this.beginPolling(name, session);
+          }
+        }, 1000);
+
+        // 允许在未到时重复展示倒计时
+        $("#stockLabel").textContent = "--";
+      },
+      stop(reason="手动停止"){
+        this.started = false;
+        clearInterval(this.pollId);
+        clearInterval(this.countdownId);
+        $("#btnStartTicket").disabled = false;
+        $("#btnStopTicket").disabled = true;
+        $("#ticket-status-chip").className = "status-chip chip-warn";
+        $("#ticket-status-chip").textContent = "⏸ 已停止";
+        $("#liveStatus").textContent = "🟡 已停止";
+        $("#pollBadge").textContent = "未开始";
+        appendLog(`停止抢票：${reason}`);
+      },
+      beginPolling(name, session){
+        // 每 3 秒拉一次库存状态
+        $("#pollBadge").textContent = "3s";
+        // ★★★ 集成入口（调用“抢票项目”的开始函数）★★★
+        // 例如：
+        // window.TicketProject.start({ target:name, session, onUpdate: (evt)=>{ appendLog(evt.message) } });
+        // 并在 this.pollId 内部调用 TicketProject.checkStock() 或由对方库自行轮询。
+        // 下方为【模拟实现】，请替换为真实逻辑。
+
+        let attempts = 0;
+        clearInterval(this.pollId);
+        this.pollId = setInterval(()=>{
+          attempts++;
+          const stock = mockCheckStock(); // ← 模拟库存
+          $("#stockLabel").textContent = stock;
+          appendLog(`库存检查 #${attempts}：${stock}`);
+          if(stock === 0 && attempts % 3 === 0){
+            $("#noStockStatus").style.display = "inline-flex";
+          }
+          // 随机“抢到票”条件（示例）
+          if(stock > 0 && Math.random() < 0.22){
+            clearInterval(this.pollId);
+            $("#gotStatus").style.display = "inline-flex";
+            $("#liveStatus").textContent = "🟢 已抢到票";
+            appendLog("🎉 抢票成功！请尽快前往支付。");
+            beep(650, 940);
+            openModal(`<p>🎉 <strong>已抢到票</strong></p >
+              <p>目标：<span class="mono">${name}</span></p >
+              <p>场次：<span class="mono">${session}</span></p >
+              <p class="muted">请在平台规定时间内完成支付。</p >`);
+            // ★★★ 集成入口（调用“抢票项目”的停止/清理）★★★
+            // window.TicketProject.stop?.();
+            $("#btnStartTicket").disabled = false;
+            $("#btnStopTicket").disabled = true;
+            $("#ticket-status-chip").textContent = "🎯 已完成";
+            $("#ticket-status-chip").className = "status-chip chip-ok";
+          }
+        }, 3000);
+      }
+    };
+
+    // 绑定按钮
+    $("#btnStartTicket").addEventListener("click", ()=> ticket.start());
+    $("#btnStopTicket").addEventListener("click", ()=> ticket.stop());
+
+    // —— 模拟库存：有时 0、有时 1-5 ——（集成真实项目时删除）
+    function mockCheckStock(){
+      const r = Math.random();
+      if(r < 0.55) return 0;
+      if(r < 0.85) return Math.floor(1 + Math.random()*2);
+      return Math.floor(3 + Math.random()*3);
+    }
+
+    /*********************
+     * 价格监控模块逻辑  *
+     *********************/
+    const watches = []; // {id,url,threshold,active,name,currentPrice, timerId}
+
+    const tbody = $("#watchTbody");
+    function renderWatches(){
+      $("#watchCount").textContent = String(watches.length);
+      tbody.innerHTML = "";
+      for(const w of watches){
+        const priceCls = (typeof w.currentPrice==="number" && w.currentPrice <= w.threshold) ? "price-ok" : "price-bad";
+        const status = w.active ? "监控中" : "已暂停";
+        const row = document.createElement("tr");
+        row.innerHTML = `
+          <td>
+            <div class="mono" style="max-width:560px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap" title="${w.url}">
+              ${w.name || new URL(w.url).hostname}
+            </div>
+            <div class="muted mono" style="max-width:560px; overflow:hidden; text-overflow:ellipsis">${w.url}</div>
+          </td>
+          <td class="mono">${w.threshold}</td>
+          <td class="mono ${priceCls}">${(w.currentPrice ?? "--")}</td>
+          <td><span class="pill">${status}</span></td>
+          <td>
+            <button class="btn" data-act="toggle" data-id="${w.id}">${w.active?"暂停":"恢复"}</button>
+            <button class="btn danger" data-act="del" data-id="${w.id}">删除</button>
+            <button class="btn" data-act="refresh" data-id="${w.id}">立即刷新</button>
+          </td>
+        `;
+        tbody.appendChild(row);
+      }
+    }
+
+    function addWatch(){
+      const url = $("#itemUrl").value.trim();
+      const threshold = Number($("#priceThreshold").value);
+      if(!url || !isValidUrl(url)){ toast("链接无效"); return; }
+      if(!Number.isFinite(threshold) || threshold<=0){ toast("阈值需要为正数"); return; }
+      const id = Date.now().toString(36) + Math.random().toString(36).slice(2,7);
+      const name = safeInferName(url);
+      const w = { id, url, threshold, active:true, name, currentPrice: undefined, timerId:null };
+      watches.unshift(w);
+      renderWatches();
+      toast("已添加监控");
+      scheduleWatch(w);
+      // 清理输入
+      $("#itemUrl").value = ""; $("#priceThreshold").value = "";
+    }
+
+    $("#btnAddWatch").addEventListener("click", addWatch);
+
+    // 推断名称（可自己改造）
+    function safeInferName(u){
+      try{
+        const url = new URL(u);
+        const path = url.pathname.split("/").filter(Boolean).slice(-1)[0] || url.hostname;
+        return decodeURIComponent(path).slice(0,60);
+      }catch{ return u; }
+    }
+
+    // 绑定表格操作
+    tbody.addEventListener("click", async (e)=>{
+      const btn = e.target.closest("button[data-act]");
+      if(!btn) return;
+      const id = btn.dataset.id;
+      const act = btn.dataset.act;
+      const w = watches.find(x=>x.id===id);
+      if(!w) return;
+
+      if(act==="toggle"){
+        w.active = !w.active;
+        if(w.active){ scheduleWatch(w); toast("已恢复监控"); }
+        else{ clearInterval(w.timerId); w.timerId=null; toast("已暂停"); }
+        renderWatches();
+      }else if(act==="del"){
+        if(w.timerId) clearInterval(w.timerId);
+        const idx = watches.findIndex(x=>x.id===id);
+        watches.splice(idx,1);
+        renderWatches();
+        toast("已删除");
+      }else if(act==="refresh"){
+        await refreshPrice(w, /*silent*/false);
+      }
+    });
+
+    // 为单条监控安排轮询（每 10s）
+    function scheduleWatch(w){
+      clearInterval(w.timerId);
+      const doRefresh = ()=> refreshPrice(w, /*silent*/true);
+      doRefresh();
+      w.timerId = setInterval(doRefresh, 10000);
+    }
+
+    async function refreshPrice(w, silent=true){
+      if(!w.active) return;
+      try{
+        // ★★★ 集成入口（调用“价格监控项目”的获取价格接口）★★★
+        // TODO：将下行替换为真实接口（JS SDK 或 HTTP），并处理异常与返回结构。
+        // 例如：
+        // const price = await window.PriceSDK.getCurrentPrice(w.url);
+        // 或：
+        // const resp = await fetch("https://api.example.com/price?url=" + encodeURIComponent(w.url));
+        // const {price} = await resp.json();
+
+        const price = await mockFetchCurrentPrice(w.url); // ← 模拟
+
+        w.currentPrice = price;
+        // 达标提醒
+        if(price <= w.threshold){
+          // 弹窗 + 声音
+          beep(700, 1020);
+          openModal(`
+            <p>📉 <strong>价格达标</strong></p >
+            <p>名称：<span class="mono">${w.name}</span></p >
+            <p>当前价格：<span class="mono price-ok">¥${price}</span>（阈值 ¥${w.threshold}）</p >
+            <p class="muted">请尽快前往页面查看。</p >
+          `);
+        }
+        if(!silent) toast("已刷新价格");
+      }catch(err){
+        console.error(err);
+        if(!silent) toast("刷新失败");
+      }finally{
+        renderWatches();
+      }
+    }
+
+    // —— 模拟价格接口 ——（集成真实项目时删除）
+    async function mockFetchCurrentPrice(url){
+      await new Promise(r=>setTimeout(r, 300 + Math.random()*400));
+      // 用 hostname 稍微“稳定化”一下随机值
+      const base = [...(new URL(url).hostname)].reduce((a,c)=>a+c.charCodeAt(0), 0);
+      const n = (base % 800) + Math.random()*120; // 约 0~920
+      return Math.round(n);
+    }
+
+    /*****************
+     * 无障碍 & 初始化 *
+     *****************/
+    appendLog("欢迎使用：此页面仅为学习研究的前端集成示例。请遵守平台与法律法规，勿用于违规抢票或恶意监控。");
+  </script>
+</body>
+</html>
